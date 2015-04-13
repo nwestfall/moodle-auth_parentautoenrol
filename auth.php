@@ -3,8 +3,8 @@
  * Auto enrol mentors, parents or managers based on a custom profile field.
  *
  * @package    auth
- * @subpackage enrolmentor
- * @copyright  2013 Virgil Ashruf (v.ashruf@avetica.nl)
+ * @subpackage parentautoenrol
+ * @copyright  2015 Nathan Westfall (nathan@fistbumpstudios.com) ORIGINAL: 2013 Virgil Ashruf (v.ashruf@avetica.nl)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -12,16 +12,16 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->libdir.'/authlib.php');
 require_once($CFG->dirroot.'/user/profile/lib.php');
-require_once($CFG->dirroot.'/auth/enrolmentor/class/helper.php');
+require_once($CFG->dirroot.'/auth/parentautoenrol/class/helper.php');
 
-class auth_plugin_enrolmentor extends auth_plugin_base {
+class auth_plugin_parentautoenrol extends auth_plugin_base {
 
     /**
      * Constructor.
      */
-    function auth_plugin_enrolmentor() {
-        $this->authtype = 'enrolmentor';
-        $this->config = get_config('auth_enrolmentor');
+    function auth_plugin_parentautoenrol() {
+        $this->authtype = 'parentautoenrol';
+        $this->config = get_config('auth_parentautoenrol');
     }
 
     /**
@@ -158,12 +158,12 @@ class auth_plugin_enrolmentor extends auth_plugin_base {
 	    $config->enableunenrol = 0;
 	}
         // save settings
-        set_config('mainrule_fld', $config->mainrule_fld, 'auth_enrolmentor');
-        set_config('secondrule_fld', $config->secondrule_fld, 'auth_enrolmentor');
-        set_config('replace_arr', $config->replace_arr, 'auth_enrolmentor');
-        set_config('delim', $config->delim, 'auth_enrolmentor');
-        set_config('donttouchusers', $config->donttouchusers, 'auth_enrolmentor');
-        set_config('enableunenrol', $config->enableunenrol, 'auth_enrolmentor');
+        set_config('mainrule_fld', $config->mainrule_fld, 'auth_parentautoenrol');
+        set_config('secondrule_fld', $config->secondrule_fld, 'auth_parentautoenrol');
+        set_config('replace_arr', $config->replace_arr, 'auth_parentautoenrol');
+        set_config('delim', $config->delim, 'auth_parentautoenrol');
+        set_config('donttouchusers', $config->donttouchusers, 'auth_parentautoenrol');
+        set_config('enableunenrol', $config->enableunenrol, 'auth_parentautoenrol');
 
         return true;
     }
@@ -195,43 +195,29 @@ class auth_plugin_enrolmentor extends auth_plugin_base {
 
 		//Get the roleid we're going to assign.
 		$roleid = $this->config->role;
-        //trigger_error("Username:" . $username . "RoleID:" . $roleid . "UserID:" . $user->id);
 			
-		//Get all the user ids that we're a parent of.
-		$lista 		= enrolmentor_helper::get_list_employees($user, $username, $this->config);
-		$listb 		= enrolmentor_helper::get_enrolled_employees($roleid, $user->id);
+		// Get all the user ids that we're a parent of.
+		$lista 		= parentautoenrol_helper::get_list_employees($user, $username, $this->config);
+		$listb 		= parentautoenrol_helper::get_enrolled_employees($roleid, $user->id);
+        // Take the two lists above and combine (with removing duplicates)
         $listc      = array_unique(array_merge($lista, $listb));
-        $listd      = enrolmentor_helper::get_enrolled_courses($listc);
-        $liste      = enrolmentor_helper::get_my_enrolled_courses($user->id);
+        // Find all enrolled courses of the IDs above
+        $listd      = parentautoenrol_helper::get_enrolled_courses($listc);
+        // Find all enrolled courses of myself
+        $liste      = parentautoenrol_helper::get_my_enrolled_courses($user->id);
         
-        // print_r($lista);
-        // print_r($listb);
-        // print_r($listc);
-        // print_r($listd);
-        // print_r($liste);
-
-		// $toEnrol 	 = array_diff($lista, $listb);
-		// $toUnenrol 	 = array_diff($listb, $lista);
+        // Set the list to enroll in using the diffence between listd and liste
         $toCEnrol    = array_diff($listd, $liste);
+        // Set the list to unenroll from using the difference between liste and listd
         $toCUnenrol  = array_diff($liste, $listd);
 
-        // print_r($toEnrol);
-        // print_r($toUnenrol);
-        // print_r($toCEnrol);
-        // print_r($toCUnenrol);
-        // die();
-
-		// if(count($toEnrol) > 0) {
-		// 	enrolmentor_helper::doEnrol($toEnrol, $roleid, $user);
-		// }
-		// if(count($toUnenrol) > 0) {
-		// 	enrolmentor_helper::doUnenrol($toUnenrol, $roleid, $user);
-		// }
+        // Only run the encroll method if there are courses to enroll in
         if(count($toCEnrol) > 0) {
-             enrolmentor_helper::doCEnrol($toCEnrol, $roleid, $user);
+             parentautoenrol_helper::doCEnrol($toCEnrol, $roleid, $user);
         }
+        // Only run the unenroll method if there are courses to unenroll from
         if(count($toCUnenrol) > 0) {
-             enrolmentor_helper::doCUnenrol($toCUnenrol, $roleid, $user);
+             parentautoenrol_helper::doCUnenrol($toCUnenrol, $roleid, $user);
         }
     }
 }

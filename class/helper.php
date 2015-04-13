@@ -1,6 +1,14 @@
 <?php
+/**
+ * Auto enrol mentors, parents or managers based on a custom profile field.
+ *
+ * @package    auth
+ * @subpackage parentautoenrol
+ * @copyright  2015 Nathan Westfall (nathan@fistbumpstudios.com) ORIGINAL: 2013 Virgil Ashruf (v.ashruf@avetica.nl)
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
-class enrolmentor_helper {
+class parentautoenrol_helper {
 	
 	/**
 	 * __construct() HIDE: WE'RE STATIC
@@ -33,9 +41,10 @@ class enrolmentor_helper {
 	/**
 	* Nathan Westfall
 	*
-	* get_enrolled_courses
-	* returns an array of course ids
+	* get_enrolled_courses($userids)
+	* $userids = array of user IDs
 	*
+	* returns an array of course ids from the given users array
 	*/
 	static public function get_enrolled_courses($userids) {
 		global $DB;
@@ -59,9 +68,10 @@ class enrolmentor_helper {
 	/**
 	* Nathan Westfall
 	*
-	* get_enrolled_courses
-	* returns an array of course ids
+	* get_enrolled_courses($userid)
+	* $userid = single userid
 	*
+	* returns an array of course ids that myself is enrolled in
 	*/
 	static public function get_my_enrolled_courses($userid) {
 		global $DB;
@@ -125,89 +135,57 @@ class enrolmentor_helper {
 
 		return $fields;
 	}
-	
-	/**
-	 * doEnrol($toEnrol);
-	 * returns an array of user ids that this user need to be enrolled in
-	 *
-	 */
-	// static public function doEnrol($toEnrol, $roleid, $user){
-	// 	foreach($toEnrol as $enrol) {
-	// 		echo "<p>ik enrol " . $user->id . "met rol " . $roleid . "in " . context_user::instance($enrol)->id . "</p>";
-	// 		role_assign($roleid, $user->id, context_user::instance($enrol)->id, '', 0, '');
-	// 	}
-	// }
-	
-	/**
-	 * doUnenrol($toUnenrol);
-	 * returns an array of user ids thad this user need to be unenrolled in
-	 *
-	 */
-	// static public function doUnenrol($toUnenrol, $roleid, $user){
-	// 	foreach($toUnenrol as $unenrol) {
-	// 		echo "<p>ik unenrol " . $user->id . "met rol " . $roleid . "in " . context_user::instance($unenrol)->id . "</p>";
-	// 		role_unassign($roleid, $user->id, context_user::instance($unenrol)->id, '', 0, '');
-	// 	}
-	// }
 
 	/**
 	 * Nathan Westfall
 	 *
-	 * doCEnrol($toEnrol);
+	 * doCEnrol($toEnrol, $roleid, $user);
+	 * 
 	 * returns an array of user ids that this user need to be enrolled in
 	 *
 	 */
 	static public function doCEnrol($toEnrol, $roleid, $user){
 		foreach($toEnrol as $enrol) {
-			//echo "<p>ik enrol " . $user->id . "met rol " . $roleid . "in " . context_user::instance($enrol)->id . "</p>";
-			//role_assign($roleid, $user->id, context_user::instance($enrol)->id, '', 0, '');
-			enrolmentor_helper::enroll_to_course($enrol, $user->id, $roleid);
+			parentautoenrol_helper::enroll_to_course($enrol, $user->id, $roleid);
 		}
 	}
 	
 	/**
 	 * Nathan Westfall
 	 *
-	 * doCUnenrol($toUnenrol);
+	 * doCUnenrol($toUnenrol, $roleid, $user);
 	 * returns an array of user ids thad this user need to be unenrolled in
 	 *
 	 */
 	static public function doCUnenrol($toUnenrol, $roleid, $user){
 		foreach($toUnenrol as $unenrol) {
-			//echo "<p>ik unenrol " . $user->id . "met rol " . $roleid . "in " . context_user::instance($unenrol)->id . "</p>";
-			//role_unassign($roleid, $user->id, context_user::instance($unenrol)->id, '', 0, '');
-			enrolmentor_helper::unenroll_from_course($unenrol, $user->id, $roleid);
+			parentautoenrol_helper::unenroll_from_course($unenrol, $user->id, $roleid);
 		}
 	}
 
 	/**
 	* Nathan Westfall
 	*
-	* enroll_to_course($courseid, $userid, $roleid, $extendbase, $extendperiod)
 	* CODE WRITTEN BY http://stackoverflow.com/a/19711475/2592620
+	*
+	* enroll_to_course($courseid, $userid, $roleid)
+	* $courseid - id of the course to enroll in
+	* $userid - id of the user to enroll
+	* $roleid - id of the role to give user in course
+	* 
+	* returns true or false
 	*/
-	static public function enroll_to_course($courseid, $userid, $roleid=5, $extendbase=3, $extendperiod=0)  {
+	static public function enroll_to_course($courseid, $userid, $roleid)  {
 	    global $DB;
 
 	    $instance = $DB->get_record('enrol', array('courseid'=>$courseid, 'enrol'=>'manual'), '*', MUST_EXIST);
 	    $course = $DB->get_record('course', array('id'=>$instance->courseid), '*', MUST_EXIST);
 	    $today = time();
-	    $today = make_timestamp(date('Y', $today), date('m', $today), date('d', $today), 0, 0, 0);
+	    $timestart = make_timestamp(date('Y', $today), date('m', $today), date('d', $today), 0, 0, 0);
 
 	    if(!$enrol_manual = enrol_get_plugin('manual')) { throw new coding_exception('Can not instantiate enrol_manual'); }
-	    switch($extendbase) {
-	        case 2:
-	            $timestart = $course->startdate;
-	            break;
-	        case 3:
-	        default:
-	            $timestart = $today;
-	            break;
-	    }  
-	    if ($extendperiod <= 0) { $timeend = 0; }   // extendperiod are seconds
-	    else { $timeend = $timestart + $extendperiod; }
-	    $enrolled = $enrol_manual->enrol_user($instance, $userid, $roleid, $timestart, $timeend);
-	    //add_to_log($course->id, 'course', 'enrol', '../enrol/users.php?id='.$course->id, $course->id); //DEPRECIATED
+
+	    $enrolled = $enrol_manual->enrol_user($instance, $userid, $roleid, $timestart, 0);
 
 	    return $enrolled;
 	}
@@ -215,31 +193,26 @@ class enrolmentor_helper {
 	/**
 	* Nathan Westfall
 	*
-	* enroll_to_course($courseid, $userid, $roleid, $extendbase, $extendperiod)
-	* CODE TAKEN FROM http://stackoverflow.com/a/19711475/2592620
+	* CODE TAKEN FROM http://stackoverflow.com/a/19711475/2592620 and edited to do the reverse
+	*
+	* enroll_to_course($courseid, $userid, $roleid)
+	* $courseid - id of the course to enroll in
+	* $userid - id of the user to enroll
+	* $roleid - id of the role to give user in course
+	*
+	* returns true or false
 	*/
-	static public function unenroll_from_course($courseid, $userid, $roleid=5, $extendbase=3, $extendperiod=0)  {
+	static public function unenroll_from_course($courseid, $userid, $roleid)  {
 	    global $DB;
 
 	    $instance = $DB->get_record('enrol', array('courseid'=>$courseid, 'enrol'=>'manual'), '*', MUST_EXIST);
 	    $course = $DB->get_record('course', array('id'=>$instance->courseid), '*', MUST_EXIST);
 	    $today = time();
-	    $today = make_timestamp(date('Y', $today), date('m', $today), date('d', $today), 0, 0, 0);
+	    $timestart = make_timestamp(date('Y', $today), date('m', $today), date('d', $today), 0, 0, 0);
 
 	    if(!$enrol_manual = enrol_get_plugin('manual')) { throw new coding_exception('Can not instantiate enrol_manual'); }
-	    switch($extendbase) {
-	        case 2:
-	            $timestart = $course->startdate;
-	            break;
-	        case 3:
-	        default:
-	            $timestart = $today;
-	            break;
-	    }  
-	    if ($extendperiod <= 0) { $timeend = 0; }   // extendperiod are seconds
-	    else { $timeend = $timestart + $extendperiod; }
-	    $enrolled = $enrol_manual->unenrol_user($instance, $userid, $roleid, $timestart, $timeend);
-	    //add_to_log($course->id, 'course', 'enrol', '../enrol/users.php?id='.$course->id, $course->id); //DEPRECIATED
+
+	    $enrolled = $enrol_manual->unenrol_user($instance, $userid, $roleid, $timestart, 0);
 
 	    return $enrolled;
 	}	

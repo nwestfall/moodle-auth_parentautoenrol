@@ -3,13 +3,13 @@
  * Auto enrol mentors, parents or managers based on a custom profile field.
  *
  * @package    auth
- * @subpackage enrolmentor
- * @copyright  2013 Virgil Ashruf (v.ashruf@avetica.nl)
+ * @subpackage parentautoenrol
+ * @copyright  2015 Nathan Westfall (nathan@fistbumpstudios.com) ORIGINAL: 2013 Virgil Ashruf (v.ashruf@avetica.nl)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 $string['auth_enrolmentordescription'] = 'This method auto enrols parents based on a profile field';
-$string['pluginname'] = 'Autoenrol Parents';
+$string['pluginname'] = 'Parent Auto Enrol';
 
 $string['enrolmentor_settingrole'] = 'Select the role to assign here';
 $string['enrolmentor_settingrolehelp'] = 'Click on the drop down menu to select a role';
